@@ -1,0 +1,9 @@
+[package]
+name = "helloWorld"
+version = "0.1.0"
+authors = ["itsMontoya <josh@montoya.io>"]
+
+[dependencies]
+futures = "*"
+tokio-core = "*"
+tokio-io = "*"
