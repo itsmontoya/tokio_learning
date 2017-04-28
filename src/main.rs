@@ -94,11 +94,7 @@ fn main() {
         // After our copy operation is complete we just print out some helpful
         // information.
         let msg = amt.then(move |result| {
-            match result {
-                Ok((amt, _, _)) => println!("wrote {} bytes to {}", amt, addr),
-                Err(e) => println!("error on {}: {}", addr, e),
-            }
-
+            printInfo(addr, result);
             Ok(())
         });
 
@@ -130,11 +126,18 @@ fn main() {
     core.run(done).unwrap();
 }
 
-fn printInfo(result){
-    match result {
-        Ok((amt, _, _)) => println!("wrote {} bytes to {}", amt, addr),
-        Err(e) => println!("error on {}: {}", addr, e),
-    }
-
-    Ok(())
+// error[E0243]: wrong number of type arguments: expected 2, found 0
+//    --> src/main.rs:129:36
+//     |
+// 129 | fn printInfo(addr: String, result: std::result::Result){
+//     |                                    ^^^^^^^^^^^^^^^^^^^ expected 2 type arguments
+// 
+// error: aborting due to previous error
+// 
+// error: Could not compile `helloWorld`.
+fn printInfo(addr: String, result: std::result::Result){
+               match result {
+                Ok((amt, _, _)) => println!("wrote {} bytes to {}", amt, addr),
+                Err(e) => println!("error on {}: {}", addr, e),
+            }
 }
