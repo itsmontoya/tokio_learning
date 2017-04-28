@@ -83,7 +83,7 @@ fn main() {
     core.run(done).unwrap();
 }
 
-fn handleIncoming(socket: tokio_core::net::TcpStream, addr: std::net::SocketAddr) -> futures::future::Future {
+fn handleIncoming(socket: tokio_core::net::TcpStream, addr: std::net::SocketAddr) -> Box<futures::future::Future<Item=(), Error=std::io::Error>> {
     let (reader, writer) = socket.split();
     let amt = copy(reader, writer);
 
@@ -96,5 +96,5 @@ fn handleIncoming(socket: tokio_core::net::TcpStream, addr: std::net::SocketAddr
         }
     });
 
-    Ok((msg))
+Ok(Box::new(msg))
 }
