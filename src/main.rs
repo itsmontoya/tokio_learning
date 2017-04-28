@@ -68,51 +68,8 @@ fn main() {
     // method is itself a future representing processing the entire stream of
     // connections, and ends up being our server.
     let done = socket.incoming().for_each(move |(socket, addr)| {
-
-        // Once we're inside this closure this represents an accepted client
-        // from our server. The `socket` is the client connection and `addr` is
-        // the remote address of the client (similar to how the standard library
-        // operates).
-        //
-        // We just want to copy all data read from the socket back onto the
-        // socket itself (e.g. "echo"). We can use the standard `io::copy`
-        // combinator in the `tokio-core` crate to do precisely this!
-        //
-        // The `copy` function takes two arguments, where to read from and where
-        // to write to. We only have one argument, though, with `socket`.
-        // Luckily there's a method, `Io::split`, which will split an Read/Write
-        // stream into its two halves. This operation allows us to work with
-        // each stream independently, such as pass them as two arguments to the
-        // `copy` function.
-        //
-        // The `copy` function then returns a future, and this future will be
-        // resolved when the copying operation is complete, resolving to the
-        // amount of data that was copied.
-        let (reader, writer) = socket.split();
-        let amt = copy(reader, writer);
-
-        // After our copy operation is complete we just print out some helpful
-        // information.
-        let msg = amt.then(move |result| {
-            printInfo(addr, result);
-            Ok(())
-        });
-
-        // And this is where much of the magic of this server happens. We
-        // crucially want all clients to make progress concurrently, rather than
-        // blocking one on completion of another. To achieve this we use the
-        // `spawn` function on `Handle` to essentially execute some work in the
-        // background.
-        //
-        // This function will transfer ownership of the future (`msg` in this
-        // case) to the event loop that `handle` points to. The event loop will
-        // then drive the future to completion.
-        //
-        // Essentially here we're spawning a new task to run concurrently, which
-        // will allow all of our clients to be processed concurrently.
+        let msg = handleIncoming(socket, addr);
         handle.spawn(msg);
-
-        Ok(())
     });
 
     // And finally now that we've define what our server is, we run it! We
@@ -126,18 +83,18 @@ fn main() {
     core.run(done).unwrap();
 }
 
-// error[E0243]: wrong number of type arguments: expected 2, found 0
-//    --> src/main.rs:129:36
-//     |
-// 129 | fn printInfo(addr: String, result: std::result::Result){
-//     |                                    ^^^^^^^^^^^^^^^^^^^ expected 2 type arguments
-// 
-// error: aborting due to previous error
-// 
-// error: Could not compile `helloWorld`.
-fn printInfo(addr: String, result: std::result::Result){
-               match result {
-                Ok((amt, _, _)) => println!("wrote {} bytes to {}", amt, addr),
-                Err(e) => println!("error on {}: {}", addr, e),
-            }
+fn handleIncoming(socket: tokio_core::net::TcpStream, addr: std::net::SocketAddr) -> futures::future::Future {
+    let (reader, writer) = socket.split();
+    let amt = copy(reader, writer);
+
+    // After our copy operation is complete we just print out some helpful
+    // information.
+    let msg = amt.then(move |result| {
+        match result {
+            Ok((amt, _, _)) => println!("wrote {} bytes to {}", amt, addr),
+            Err(e) => println!("error on {}: {}", addr, e),
+        }
+    });
+
+    Ok((msg))
 }
